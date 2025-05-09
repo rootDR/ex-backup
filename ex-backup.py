@@ -5,6 +5,7 @@ from colorama import Fore, Style, init
 import os
 from tqdm import tqdm
 from datetime import datetime
+from termcolor import colored  # Importing colored for colored output
 
 # Initialize colorama for colored console output
 init(autoreset=True)
@@ -27,6 +28,30 @@ HEADERS = {
 
 # Maximum bytes to download for partial file inspection
 PARTIAL_DOWNLOAD_SIZE = 1024  # 1 KB
+
+# Function to print the banner
+def print_banner():
+    banner = r"""
+                                888                        888                        
+                                888                        888                        
+                                888                        888                        
+     .d88b.  888  888       88888b.   8888b.   .d8888b 888  888 888  888 88888b.  
+    d8P  Y8b `Y8bd8P'       888 "88b     "88b d88P"    888 .88P 888  888 888 "88b 
+    88888888   X88K  888888 888  888 .d888888 888      888888K  888  888 888  888 
+    Y8b.     .d8""8b.       888 d88P 888  888 Y88b.    888 "88b Y88b 888 888 d88P 
+     "Y8888  888  888       88888P"  "Y888888  "Y8888P 888  888  "Y88888 88888P"  
+                                                                         888      
+                                                                         888      
+                                                                         888                                     
+                                                                                      
+
+                     ex-backup | Automated Backup Finder
+
+        [  Author   ] rootdr
+        [  Twitter  ] @R00TDR
+        [  Telegram ] https://t.me/RootDr
+        """
+    print(colored(banner, "magenta"))
 
 # Function to check if a protocol is reachable
 def check_protocol(domain):
@@ -118,6 +143,9 @@ def load_file(file_path):
 
 # Main function
 def main():
+    # Print the banner when the script starts
+    print_banner()
+
     parser = argparse.ArgumentParser(description="Backup File Finder for Bug Bounty")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-t", "--target", help="Single target domain (e.g., example.com)")
