@@ -4,8 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 from colorama import Fore, Style, init
 import os
 from tqdm import tqdm
-from datetime import datetime
-from termcolor import colored  # Importing colored for colored output
 
 # Initialize colorama for colored console output
 init(autoreset=True)
@@ -29,57 +27,29 @@ HEADERS = {
 # Maximum bytes to download for partial file inspection
 PARTIAL_DOWNLOAD_SIZE = 1024  # 1 KB
 
-# Function to print the banner
-def print_banner():
-    banner = r"""
-                                888                        888                        
-                                888                        888                        
-                                888                        888                        
-     .d88b.  888  888       88888b.   8888b.   .d8888b 888  888 888  888 88888b.  
-    d8P  Y8b `Y8bd8P'       888 "88b     "88b d88P"    888 .88P 888  888 888 "88b 
-    88888888   X88K  888888 888  888 .d888888 888      888888K  888  888 888  888 
-    Y8b.     .d8""8b.       888 d88P 888  888 Y88b.    888 "88b Y88b 888 888 d88P 
-     "Y8888  888  888       88888P"  "Y888888  "Y8888P 888  888  "Y88888 88888P"  
-                                                                         888      
-                                                                         888      
-                                                                         888                                     
-                                                                                      
-
-                     ex-backup | Automated Backup Finder
-
-        [  Author   ] rootdr
-        [  Twitter  ] @R00TDR
-        [  Telegram ] https://t.me/RootDr
-        """
-    print(colored(banner, "magenta"))
-
-# Function to check if a protocol is reachable
-def check_protocol(domain):
-    protocols = ["http", "https"]
-    for proto in protocols:
-        try:
-            response = requests.head(f"{proto}://{domain}", headers=HEADERS, timeout=5)
-            if response.status_code == 200:
-                return proto
-        except requests.RequestException:
-            continue
-    return None
+# Function to check if a domain is reachable
+def is_domain_alive(domain):
+    try:
+        response = requests.get(f"http://{domain}", headers=HEADERS, timeout=5)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
 
 # Function to generate backup file URLs for a domain
-def generate_urls(domain, wordlist, protocol):
+def generate_urls(domain, wordlist):
     base_name = domain.split(".")[0]  # Simplified base name extraction
-    urls = set()  # Using set to remove duplicates
+    urls = []
 
     # Add URLs based on backup extensions
     for ext in BACKUP_EXTENSIONS:
-        urls.add(f"{protocol}://{domain}/{base_name}{ext}")
+        urls.append(f"http://{domain}/{base_name}{ext}")
 
     # Add URLs based on wordlist
     for word in wordlist:
         for ext in BACKUP_EXTENSIONS:
-            urls.add(f"{protocol}://{domain}/{word}{ext}")
+            urls.append(f"http://{domain}/{word}{ext}")
 
-    return list(urls)  # Convert back to list for compatibility
+    return urls
 
 # Function to check if a URL contains a valid downloadable file
 def is_valid_file(url):
@@ -107,13 +77,12 @@ def is_valid_file(url):
 
 # Function to process a single domain
 def process_domain(domain, wordlist):
-    protocol = check_protocol(domain)
-    if not protocol:
-        print(Fore.RED + f"[!] Domain not reachable via HTTP or HTTPS: {domain}")
+    if not is_domain_alive(domain):
+        print(Fore.RED + f"[!] Domain not reachable: {domain}")
         return
 
-    print(Style.BRIGHT + f"[*] Scanning domain: {domain} using {protocol.upper()}")
-    urls = generate_urls(domain, wordlist, protocol)
+    print(Style.BRIGHT + f"[*] Scanning domain: {domain}")
+    urls = generate_urls(domain, wordlist)
     valid_links = []
 
     with ThreadPoolExecutor(max_workers=30) as executor:
@@ -124,8 +93,7 @@ def process_domain(domain, wordlist):
 
     # Save valid links to a file
     if valid_links:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"{domain.replace('.', '_')}_valid_links_{timestamp}.txt"
+        file_name = f"{domain.replace('.', '_')}_valid_links.txt"
         with open(file_name, "w") as f:
             f.writelines(f"{link}\n" for link in valid_links)
         print(Fore.YELLOW + f"[*] {len(valid_links)} valid files saved to {file_name}")
@@ -143,9 +111,6 @@ def load_file(file_path):
 
 # Main function
 def main():
-    # Print the banner when the script starts
-    print_banner()
-
     parser = argparse.ArgumentParser(description="Backup File Finder for Bug Bounty")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-t", "--target", help="Single target domain (e.g., example.com)")
